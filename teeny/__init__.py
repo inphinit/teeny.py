@@ -1,15 +1,31 @@
+import re
+
+PARAM_PATTERNS = {
+    'alnum': '[\\da-zA-Z]+',
+    'alpha': '[a-zA-Z]+',
+    'decimal': '\\d+\\.\\d+',
+    'num': '\\d+',
+    'noslash': '[^\\/]+',
+    'nospace': '\\S+',
+    'uuid': '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+    'version': '\\d+\\.\\d+(\\.\\d+(-[\\da-zA-Z]+(\\.[\\da-zA-Z]+)*(\\+[\\da-zA-Z]+(\\.[\\da-zA-Z]+)*)?)?)?'
+}
+
+GROUP_PARAM = r'(?P<\1><\3>)'
+
 class Teeny():
     routes = {}
+    paramRoutes = {}
     codes = {}
     hasParams = False
     publicPath = None
     port = None
     debug = False
-    codes = {}
-    routes = {}
     code = 200
     routesPath = None
     server = None
+    maintenance = False
+    paramPatterns = PARAM_PATTERNS.copy();
 
 
     def __init__(self, port, address = 'localhost'):
@@ -17,29 +33,35 @@ class Teeny():
         self.address = address
 
 
-    def action(self, methods, path, callback=None):
+    def action(self, methods, path, callback = None):
         if callback is not None:
             self.teenyAction(methods, path, callback)
         else:
-            def wrapper(callback): # , *args, **kwargs
+            def wrapper(callback):
                 self.teenyAction(methods, path, callback)
 
             return wrapper
 
 
     def teenyAction(self, methods, path, callback):
-        if isinstance(methods, list): 
+        path = '/' + path.lstrip('/')
+
+        if '<' in path:
+            routes = self.paramRoutes
+
+            self.hasParams = True
+        else:
+            routes = self.routes
+
+        if path not in routes:
+            routes[path] = {};
+
+        if isinstance(methods, list):
             for method in methods:
-                self.teenyAction(method, path, callback)
+                routes[path][method.upper()] = callback
 
         else:
-            if path not in self.routes:
-                self.routes[path] = {}
-
-            if '<' in path:
-                self.hasParams = True
-
-            self.routes[path][methods.upper()] = callback
+            routes[path][methods.upper()] = callback
 
 
     def handlerCodes(self, codes, callback=None):
@@ -52,7 +74,7 @@ class Teeny():
             return wrapper
 
 
-    def teenyHandlerCodes(self, codes, callback):
+    def teenyHandlerCode(self, codes, callback):
         for code in codes:
             self.codes[code] = callback
 
@@ -73,32 +95,97 @@ class Teeny():
 
 
     def exec(self):
-        print('exec')
         self.listen('HEAD', '/sugar')
 
 
-    def listen(self, method, path):
-        callback = None
-        newCode = 0
+    def listen(self, _method, _path):
+        if self.maintenance:
+            print(503, self.defaultType)
+            print('Service Unavailable')
+            return None
 
-        if path in self.routes:
-            routes = self.routes[path]
+        method = _method
+        path = _path
 
-            if method in routes:
-                callback = routes[method]
-            elif 'ANY' in routes:
-                callback = routes['ANY']
-            else:
-                newCode = 405
-
-        elif self.hasParams: # and self.teenyParams(request, response, method, path):
-            return True
+        if self.publicPath:
+            code = self.teenyPublic(path, method, response)
+            
+            if code == False:
+                return
         else:
-            newCode = 404
+            code = 200
 
-        if newCode != 0 and newCode in self.codes:
-            callback = self.codes[newCode]
+        callback = None
+
+        if code == 200:
+            if path in self.routes:
+                routes = self.routes[path]
+
+                if method in routes:
+                    callback = routes[method]
+                elif 'ANY' in routes:
+                    callback = routes['ANY']
+                else:
+                    code = 405
+
+            elif self.hasParams:
+                try:
+                    return self.teenyParams(method, path)
+                except re.error as err:
+                    if self.debug:
+                        print(ee)
+
+                    code = 500
+
+            else:
+                code = 404
+
+        self.teenyDispatch(method, path, callback, code, None)
+
+
+    def teenyPublic(path):
+        return 0
+
+
+    def teenyParams(self, method, pathinfo):
+        patterns = self.paramPatterns
+        getParams = "[<](.*?)(\\:(" + ("|".join(patterns.keys())) + ")|)[>]"
+
+        callback = None
+        code = 404
+
+        for path, routes in self.paramRoutes.items():
+            path = re.sub(getParams, GROUP_PARAM, path)
+            path = path.replace('<>)', '.*?)')
+
+            for pattern, value in patterns.items():
+                path = path.replace('<' + pattern + '>)', value + ')')
+
+            params = re.match('^' + path + '$', pathinfo)
+
+            if params is not None:
+                if method in routes:
+                    callback = routes[method]
+                elif method in routes:
+                    callback = routes['ANY']
+
+                if callback is None:
+                    code = 405
+                else:
+                    return self.teenyDispatch(method, pathinfo, callback, 200, params.groupdict())
+
+
+        return self.teenyDispatch(method, pathinfo, None, code, None)
+
+
+    def teenyDispatch(self, method, path, callback, code, params):
+        print('<response>:')
+
+        if code != 200 and code in self.codes:
+            callback = self.codes[code]
 
         if callback is not None:
-            print('self.dispatch =>', callback)
-            # self.dispatch(callback, newCode, null)
+            print([method, path, callback, code, params])
+        else:
+            print([method, path, 'no callback', code])
+
