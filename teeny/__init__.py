@@ -101,14 +101,11 @@ class Teeny():
         self.listen('HEAD', '/sugar')
 
 
-    def listen(self, _method, _path):
+    def listen(self, method, path):
         if self.maintenance:
             print(503, self.defaultType)
             print('Service Unavailable')
             return None
-
-        method = _method
-        path = _path
 
         if self.publicPath:
             code = self.teenyPublic(path, method, response)
