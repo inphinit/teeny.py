@@ -13,6 +13,7 @@ PARAM_PATTERNS = {
 
 GROUP_PARAM = r'(?P<\1><\3>)'
 
+
 class Teeny():
     routes = {}
     paramRoutes = {}
@@ -50,6 +51,8 @@ class Teeny():
             routes = self.paramRoutes
 
             self.hasParams = True
+
+            path = re.escape(path)
         else:
             routes = self.routes
 
@@ -149,7 +152,7 @@ class Teeny():
 
     def teenyParams(self, method, pathinfo):
         patterns = self.paramPatterns
-        getParams = "[<](.*?)(\\:(" + ("|".join(patterns.keys())) + ")|)[>]"
+        getParams = "[<](\\w+)(\\:(" + ("|".join(patterns.keys())) + ")|)[>]"
 
         callback = None
         code = 404
