@@ -98,19 +98,19 @@ class Teeny():
 
 
     def exec(self):
-        self.listen('HEAD', '/sugar')
+        self.teenyListen('HEAD', '/sugar')
 
 
-    def listen(self, method, path):
+    def teenyListen(self, method, path):
         if self.maintenance:
-            print(503, self.defaultType)
+            print(503)
             print('Service Unavailable')
             return None
 
         if self.publicPath:
             code = self.teenyPublic(path, method, response)
-            
-            if code == False:
+
+            if code == 0:
                 return
         else:
             code = 200
@@ -133,7 +133,7 @@ class Teeny():
                     return self.teenyParams(method, path)
                 except re.error as err:
                     if self.debug:
-                        print(ee)
+                        print(err)
 
                     code = 500
 
@@ -175,17 +175,42 @@ class Teeny():
                     return self.teenyDispatch(method, pathinfo, callback, 200, params.groupdict())
 
 
-        return self.teenyDispatch(method, pathinfo, None, code, None)
+        self.teenyDispatch(method, pathinfo, None, code, None)
 
 
     def teenyDispatch(self, method, path, callback, code, params):
         print('<response>:')
+
+        request = 'FAKE'
+        response = 'FAKE'
 
         if code != 200 and code in self.codes:
             callback = self.codes[code]
 
         if callback is not None:
             print([method, path, callback, code, params])
-        else:
-            print([method, path, 'no callback', code])
 
+            result = None
+
+            try:
+                if code != 200:
+                    result = callback(request, response, code);
+                elif params is not None:
+                    result = callback(request, response, params);
+                else:
+                    result = callback(request, response);
+
+                print('result:', result)
+            except:
+                # teenyInfo(method, path, 500, ee);
+
+                callback = self.codes[500];
+
+                if callback:
+                    self.teenyDispatch(request, response, method, path, callback, 500, None)
+                    return
+                else:
+                    print(500)
+        else:
+            # self.teenyInfo(method, path, code);
+            print([method, path, 'no callback', code])

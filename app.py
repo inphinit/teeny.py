@@ -3,8 +3,8 @@
 from teeny import Teeny
 
 
-def test():
-    print('234')
+def test(request, response, params=None):
+    return 'get sugar'
 
 
 app = Teeny(8080)
@@ -13,18 +13,22 @@ app.action('GET', '/sugar', test)
 
 
 @app.action('POST', '/sugar')
-def xyz():
-    print(12345)
+def xyz(request, response):
+    return 'add sugar to coffee'
 
 
 app.action('GET', '/^,$,|,[,],(,),:,<,>,!,?,#/<abc>', test)
 
 
 @app.action('GET', '/blog/<name>-<id:num>')
-def article():
-    print(12345)
+def article(request, response, params):
+    return 'Hello world blog'
 
 
 ## app.exec()
 
-app.listen('GET', '/^,$,|,[,],(,),:,<,>,!,?,#/A1000')
+app.teenyListen('GET', '/sugar')
+app.teenyListen('POST', '/sugar')
+
+app.teenyListen('GET', '/^,$,|,[,],(,),:,<,>,!,?,#/foobar')
+app.teenyListen('GET', '/blog/john-1000')
