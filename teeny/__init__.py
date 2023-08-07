@@ -107,36 +107,36 @@ class Teeny():
             print('Service Unavailable')
             return None
 
-        if self.publicPath:
-            code = self.teenyPublic(path, method, response)
-
-            if code == 0:
-                return
-        else:
-            code = 200
-
+        code = None
         callback = None
 
-        if code == 200:
-            if path in self.routes:
-                routes = self.routes[path]
+        if path in self.routes:
+            code = 200
 
-                if method in routes:
-                    callback = routes[method]
-                elif 'ANY' in routes:
-                    callback = routes['ANY']
-                else:
-                    code = 405
+            routes = self.routes[path]
 
-            elif self.hasParams:
-                try:
-                    return self.teenyParams(method, path)
-                except re.error as err:
-                    if self.debug:
-                        print(err)
+            if method in routes:
+                callback = routes[method]
+            elif routes.ANY:
+                callback = routes.ANY
+            else:
+                code = 405
 
-                    code = 500
+        elif self.hasParams:
+            try:
+                return self.teenyParams(method, path)
+            except re.error as err:
+                if self.debug:
+                    print(err)
 
+                code = 500
+
+        if code is None:
+            if self.publicPath:
+                code = self.teenyPublic(method, path)
+
+                if code is None:
+                    return
             else:
                 code = 404
 
@@ -174,12 +174,11 @@ class Teeny():
                 else:
                     return self.teenyDispatch(method, pathinfo, callback, 200, params.groupdict())
 
-
         self.teenyDispatch(method, pathinfo, None, code, None)
 
 
     def teenyDispatch(self, method, path, callback, code, params):
-        print('<response>:')
+        print('\n<response>:')
 
         request = 'FAKE'
         response = 'FAKE'
