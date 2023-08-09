@@ -194,17 +194,17 @@ class Teeny():
 
             try:
                 if code != 200:
-                    result = callback(request, response, code);
+                    result = callback(request, response, code)
                 elif params is not None:
-                    result = callback(request, response, params);
+                    result = callback(request, response, params)
                 else:
-                    result = callback(request, response);
+                    result = callback(request, response)
 
                 print('result:', result)
             except:
-                # teenyInfo(method, path, 500, ee);
+                # teenyInfo(method, path, 500, ee)
 
-                callback = self.codes[500];
+                callback = self.codes[500]
 
                 if callback:
                     self.teenyDispatch(request, response, method, path, callback, 500, None)
