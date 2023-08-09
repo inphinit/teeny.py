@@ -24,6 +24,10 @@ Modules that will be used in the project:
 - https://www.python.org/dev/peps/pep-0333/ (for production)
 - https://docs.python.org/3/library/http.server.html (for development)
 
+- wsgi
+- uwsgi
+- ascgi
+
 ## Example
 
 ``` python

@@ -98,7 +98,8 @@ class Teeny():
 
 
     def exec(self):
-        self.teenyListen('HEAD', '/sugar')
+        # self.teenyListen('HEAD', '/sugar')
+        pass
 
 
     def teenyListen(self, method, path):
