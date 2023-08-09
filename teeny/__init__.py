@@ -1,3 +1,5 @@
+"""Inspired by Inphinit and Teeny."""
+
 import re
 
 PARAM_PATTERNS = {
@@ -11,10 +13,12 @@ PARAM_PATTERNS = {
     'version': '\\d+\\.\\d+(\\.\\d+(-[\\da-zA-Z]+(\\.[\\da-zA-Z]+)*(\\+[\\da-zA-Z]+(\\.[\\da-zA-Z]+)*)?)?)?'
 }
 
-GROUP_PARAM = r'(?P<\1><\3>)'
+GROUP_PARAM = '(?P<\\1><\\3>)'
 
 
 class Teeny():
+    """Simple route system."""
+
     routes = {}
     paramRoutes = {}
     codes = {}
@@ -29,22 +33,118 @@ class Teeny():
     paramPatterns = PARAM_PATTERNS.copy()
 
 
-    def __init__(self, port, address = 'localhost'):
+    def __init__(self, port, address='localhost'):
+        """Configure server.
+
+        Args:
+            port: Set port.
+            address: Set address.
+        Returns:
+            the square root of n.
+        Raises:
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+        """
         self.port = port
         self.address = address
 
 
-    def action(self, methods, path, callback = None):
+    def action(self, methods, path, callback):
+        """Register or remove a callback or script for a route.
+
+        Args:
+            method: Set the http method(s).
+            path: Set the path.
+            callback: Set the function or module.
+        Returns:
+            the square root of n.
+        Raises:
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+        """
         if callback is not None:
-            self.teenyAction(methods, path, callback)
+            self.__action(methods, path, callback)
         else:
             def wrapper(callback):
-                self.teenyAction(methods, path, callback)
+                self.__action(methods, path, callback)
 
             return wrapper
 
 
-    def teenyAction(self, methods, path, callback):
+    def handlerCodes(self, codes, callback):
+        """Handle HTTP status code from ISAPI (from apache2handler or fast-cgi).
+
+        Args:
+            codes: Set code errors.
+            callback: Set function or module.
+        Returns:
+            the square root of n.
+        Raises:
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+        """
+        if callback is not None:
+            self.__handlerCodes(codes, callback)
+        else:
+            def wrapper(callback):
+                self.__handlerCodes(codes, callback)
+
+            return wrapper
+
+
+    def setDebug(self, debug):
+        """Enable or disable debug mode.
+
+        Args:
+            debug: Enable or disable debug mode.
+        Returns:
+            the square root of n.
+        Raises:
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+        """
+        self.debug = debug
+
+
+    def setPublic(self, path):
+        """Set a folder with static files that can be accessed by url.
+
+        Args:
+            path: Set public path.
+        Returns:
+            the square root of n.
+        Raises:
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+        """
+        self.publicPath = path
+
+
+    def setPattern(self, pattern, regex):
+        """Create or remove a pattern for URL slugs.
+
+        Args:
+            pattern: Set a pattern for URL slug params like this /foo/<var:pattern>.
+            regex: Set a regex to a specific pattern.
+        Returns:
+            the square root of n.
+        Raises:
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+        """
+        if regex is None:
+            del self.paramPatterns[pattern]
+        else:
+            self.paramPatterns[pattern] = regex
+
+
+    def exec(self):
+        """Execute server."""
+        # self.__listen('HEAD', '/sugar')
+        pass
+
+
+    def __action(self, methods, path, callback):
         path = '/' + path.lstrip('/')
 
         if '<' in path:
@@ -67,42 +167,12 @@ class Teeny():
             routes[path][methods.upper()] = callback
 
 
-    def handlerCodes(self, codes, callback=None):
-        if callback is not None:
-            self.teenyHandlerCode(codes, callback)
-        else:
-            def wrapper(callback):
-                self.teenyHandlerCode(codes, callback)
-
-            return wrapper
-
-
-    def teenyHandlerCode(self, codes, callback):
+    def __handlerCodes(self, codes, callback):
         for code in codes:
             self.codes[code] = callback
 
 
-    def setDebug(self, debug):
-        self.debug = debug
-
-
-    def setPublic(self, path):
-        self.publicPath = path
-
-
-    def setPattern(self, pattern, regex):
-        if regex is None:
-            del self.paramPatterns[pattern]
-        else:
-            self.paramPatterns[pattern] = regex
-
-
-    def exec(self):
-        # self.teenyListen('HEAD', '/sugar')
-        pass
-
-
-    def teenyListen(self, method, path):
+    def __listen(self, method, path):
         if self.maintenance:
             print(503)
             print('Service Unavailable')
@@ -125,7 +195,7 @@ class Teeny():
 
         elif self.hasParams:
             try:
-                return self.teenyParams(method, path)
+                return self.__params(method, path)
             except re.error as err:
                 if self.debug:
                     print(err)
@@ -134,21 +204,21 @@ class Teeny():
 
         if code is None:
             if self.publicPath:
-                code = self.teenyPublic(method, path)
+                code = self.__Public(method, path)
 
                 if code is None:
                     return
             else:
                 code = 404
 
-        self.teenyDispatch(method, path, callback, code, None)
+        self.__dispatch(method, path, callback, code, None)
 
 
-    def teenyPublic(path):
+    def __public(path):
         return 0
 
 
-    def teenyParams(self, method, pathinfo):
+    def __params(self, method, pathinfo):
         patterns = self.paramPatterns
         getParams = "[<](\\w+)(\\:(" + ("|".join(patterns.keys())) + ")|)[>]"
 
@@ -173,12 +243,12 @@ class Teeny():
                 if callback is None:
                     code = 405
                 else:
-                    return self.teenyDispatch(method, pathinfo, callback, 200, params.groupdict())
+                    return self.__dispatch(method, pathinfo, callback, 200, params.groupdict())
 
-        self.teenyDispatch(method, pathinfo, None, code, None)
+        self.__dispatch(method, pathinfo, None, code, None)
 
 
-    def teenyDispatch(self, method, path, callback, code, params):
+    def __dispatch(self, method, path, callback, code, params):
         print('\n<response>:')
 
         request = 'FAKE'
@@ -207,10 +277,10 @@ class Teeny():
                 callback = self.codes[500]
 
                 if callback:
-                    self.teenyDispatch(request, response, method, path, callback, 500, None)
+                    self.__dispatch(request, response, method, path, callback, 500, None)
                     return
                 else:
                     print(500)
         else:
-            # self.teenyInfo(method, path, code)
+            # self.__Info(method, path, code)
             print([method, path, 'no callback', code])
