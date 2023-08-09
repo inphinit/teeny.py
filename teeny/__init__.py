@@ -26,7 +26,7 @@ class Teeny():
     routesPath = None
     server = None
     maintenance = False
-    paramPatterns = PARAM_PATTERNS.copy();
+    paramPatterns = PARAM_PATTERNS.copy()
 
 
     def __init__(self, port, address = 'localhost'):
@@ -57,7 +57,7 @@ class Teeny():
             routes = self.routes
 
         if path not in routes:
-            routes[path] = {};
+            routes[path] = {}
 
         if isinstance(methods, list):
             for method in methods:
@@ -212,5 +212,5 @@ class Teeny():
                 else:
                     print(500)
         else:
-            # self.teenyInfo(method, path, code);
+            # self.teenyInfo(method, path, code)
             print([method, path, 'no callback', code])
